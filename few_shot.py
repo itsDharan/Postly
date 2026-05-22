@@ -2,11 +2,24 @@
 import os
 import certifi
 import pandas as pd
+import streamlit as st
 from pymongo import MongoClient
+
+@st.cache_resource
+def _get_mongo_client():
+    """Shared MongoDB client — cached across Streamlit reruns."""
+    uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+    return MongoClient(
+        uri,
+        tlsCAFile=certifi.where(),
+        serverSelectionTimeoutMS=30000,
+        connectTimeoutMS=30000,
+        socketTimeoutMS=30000,
+    )
 
 class FewShotPosts:
     def __init__(self, dataset_name):
-        self.client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017/"), tlsCAFile=certifi.where())
+        self.client = _get_mongo_client()
         self.db = self.client["linkedin_post_generator"]
         self.dataset_name = dataset_name
         self.df = None
@@ -28,7 +41,6 @@ class FewShotPosts:
             self.df = pd.DataFrame()
             self.unique_tags = []
 
-    # ... rest of the class remains the same ...
     def get_filtered_posts(self, length, language, tag):
         if self.df.empty:
             return []
@@ -50,6 +62,3 @@ class FewShotPosts:
 
     def get_tags(self):
         return self.unique_tags
-
-    def __del__(self):
-        self.client.close()
