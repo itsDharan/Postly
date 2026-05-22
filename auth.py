@@ -1,5 +1,6 @@
 # auth.py
 import os
+import certifi
 from passlib.hash import pbkdf2_sha256
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
@@ -7,7 +8,7 @@ from passlib.exc import InvalidHashError
 
 # MongoDB connection — uses MONGO_URI env var on Render, falls back to localhost
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
-client = MongoClient(MONGO_URI)
+client = MongoClient(MONGO_URI, tlsCAFile=certifi.where())
 db = client["linkedin_post_generator"]
 users_collection = db["users"]
 influencers_collection = db["influencers"]

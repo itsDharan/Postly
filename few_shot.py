@@ -1,11 +1,12 @@
 # few_shot.py
 import os
+import certifi
 import pandas as pd
 from pymongo import MongoClient
 
 class FewShotPosts:
     def __init__(self, dataset_name):
-        self.client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017/"))
+        self.client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017/"), tlsCAFile=certifi.where())
         self.db = self.client["linkedin_post_generator"]
         self.dataset_name = dataset_name
         self.df = None
