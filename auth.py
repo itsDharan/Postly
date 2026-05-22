@@ -1,28 +1,30 @@
 # auth.py
+import os
 from passlib.hash import pbkdf2_sha256
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
 from passlib.exc import InvalidHashError
 
-# MongoDB connection
-client = MongoClient("mongodb://localhost:27017/")  # Update with your MongoDB URI
+# MongoDB connection — uses MONGO_URI env var on Render, falls back to localhost
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+client = MongoClient(MONGO_URI)
 db = client["linkedin_post_generator"]
 users_collection = db["users"]
 influencers_collection = db["influencers"]
 
 INFLUENCERS = {
-    "Murli Dharan": "murlidharan",
-    "Khushbu Rani": "khushburani",
-    "Ammar Adil": "ammaradil"
+    "Influencer 1": "murlidharan",
+    "Influencer 2": "khushburani",
+    "Influencer 3": "ammaradil"
 }
 
 def init_db():
     """Initialize the database with influencers if not exists"""
     if not influencers_collection.count_documents({}):
         influencers_collection.insert_many([
-            {"name": "Murli Dharan", "username": "murlidharan", "dataset": "murli_data"},
-            {"name": "Khushbu Rani", "username": "khushburani", "dataset": "khushbu_data"},
-            {"name": "Ammar Adil", "username": "ammaradil", "dataset": "ammar_data"}
+            {"name": "Influencer 1", "username": "murlidharan", "dataset": "murli_data"},
+            {"name": "Influencer 2", "username": "khushburani", "dataset": "khushbu_data"},
+            {"name": "Influencer 3", "username": "ammaradil", "dataset": "ammar_data"}
         ])
 
 def register_user(username, password, influencer_username):

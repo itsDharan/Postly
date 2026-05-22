@@ -1,0 +1,9 @@
+streamlit
+pymongo
+dnspython
+passlib
+pandas
+langchain-groq
+langchain-core
+python-dotenv
+certifi

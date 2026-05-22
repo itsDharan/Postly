@@ -1,11 +1,11 @@
 # few_shot.py
-# few_shot.py
+import os
 import pandas as pd
 from pymongo import MongoClient
 
 class FewShotPosts:
     def __init__(self, dataset_name):
-        self.client = MongoClient("mongodb://localhost:27017/")
+        self.client = MongoClient(os.getenv("MONGO_URI", "mongodb://localhost:27017/"))
         self.db = self.client["linkedin_post_generator"]
         self.dataset_name = dataset_name
         self.df = None
