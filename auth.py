@@ -1,5 +1,6 @@
 # auth.py
 import os
+import ssl
 import certifi
 import streamlit as st
 from passlib.hash import pbkdf2_sha256
@@ -12,8 +13,14 @@ from passlib.exc import InvalidHashError
 def get_mongo_client():
     """Create and cache a single MongoDB client for the app lifetime."""
     uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+
+    # Build a TLS-safe SSL context compatible with MongoDB Atlas M0
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
+    ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
+
     return MongoClient(
         uri,
+        tls=True,
         tlsCAFile=certifi.where(),
         serverSelectionTimeoutMS=30000,
         connectTimeoutMS=30000,
@@ -50,7 +57,7 @@ def init_db():
                 {"name": "Influencer 2", "username": "khushburani", "dataset": "khushbu_data"},
                 {"name": "Influencer 3", "username": "ammaradil", "dataset": "ammar_data"}
             ])
-    except PyMongoError as e:
+    except PyMongoError:
         pass  # Will be caught by check_db_connection
 
 def register_user(username, password, influencer_username):
@@ -103,7 +110,7 @@ def get_user_data(username):
     """Get user data including influencer dataset."""
     try:
         return users_collection.find_one({"username": username}, {"_id": 0})
-    except PyMongoError as e:
+    except PyMongoError:
         return None
 
 # Initialize the database on import
