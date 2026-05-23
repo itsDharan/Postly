@@ -379,17 +379,23 @@ def login_page():
                                      placeholder="Enter your password")
             st.write("")
             if st.button("Sign In →", use_container_width=True):
-                if authenticate_user(username, password):
-                    st.session_state['logged_in'] = True
-                    st.session_state['username'] = username
-                    user_data = get_user_data(username)
-                    if user_data:
-                        st.session_state['influencer'] = user_data['influencer']
-                        st.rerun()
-                    else:
-                        st.error("User data not found")
+                if not username or not password:
+                    st.error("Please enter both username and password")
                 else:
-                    st.error("Invalid credentials")
+                    with st.spinner("Signing in..."):
+                        auth_result = authenticate_user(username, password)
+                    if auth_result:
+                        with st.spinner("Loading your profile..."):
+                            user_data = get_user_data(username)
+                        if user_data:
+                            st.session_state['logged_in'] = True
+                            st.session_state['username'] = username
+                            st.session_state['influencer'] = user_data['influencer']
+                            st.rerun()
+                        else:
+                            st.error("Could not load user profile. Please try again.")
+                    else:
+                        st.error("Invalid username or password. Please try again.")
 
         with tab2:
             new_username = st.text_input("Username", key="reg_username",
@@ -401,11 +407,18 @@ def login_page():
                                       options=list(INFLUENCERS.keys()))
             st.write("")
             if st.button("Create Account →", use_container_width=True):
-                if register_user(new_username, new_password,
-                                 INFLUENCERS[influencer]):
-                    st.success("✅ Account created! Sign in to continue.")
+                if not new_username or not new_password:
+                    st.error("Please fill in all fields")
+                elif len(new_password) < 4:
+                    st.error("Password must be at least 4 characters")
                 else:
-                    st.error("Username already exists")
+                    with st.spinner("Creating your account..."):
+                        result = register_user(new_username, new_password,
+                                               INFLUENCERS[influencer])
+                    if result:
+                        st.success("Account created! Switch to 'Sign In' tab to continue.")
+                    else:
+                        st.error("Registration failed — username may already exist. Try a different username.")
 
 
 

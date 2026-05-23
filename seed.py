@@ -39,7 +39,7 @@ def seed_posts():
     for filepath, collection_name in DATASET_MAP.items():
         full_path = os.path.join(base_dir, filepath)
         if not os.path.exists(full_path):
-            print(f"⚠  File not found, skipping: {full_path}")
+            print(f"[SKIP] File not found: {full_path}")
             continue
 
         with open(full_path, encoding="utf-8") as f:
@@ -48,7 +48,7 @@ def seed_posts():
         collection = db[collection_name]
         collection.drop()  # clear old data to avoid duplicates
         collection.insert_many(posts)
-        print(f"✅ Inserted {len(posts)} posts into '{collection_name}'")
+        print(f"[OK] Inserted {len(posts)} posts into '{collection_name}'")
 
 
 def seed_influencers():
@@ -56,11 +56,11 @@ def seed_influencers():
     col = db["influencers"]
     col.drop()
     col.insert_many(INFLUENCERS)
-    print(f"✅ Inserted {len(INFLUENCERS)} influencer records")
+    print(f"[OK] Inserted {len(INFLUENCERS)} influencer records")
 
 
 if __name__ == "__main__":
     print(f"Connecting to: {MONGO_URI}")
     seed_posts()
     seed_influencers()
-    print("\n🎉 Seeding complete!")
+    print("\nSeeding complete!")
