@@ -1,6 +1,5 @@
 # few_shot.py
 import os
-import certifi
 import pandas as pd
 import streamlit as st
 from pymongo import MongoClient
@@ -9,9 +8,14 @@ from pymongo import MongoClient
 def _get_mongo_client():
     """Shared MongoDB client — cached across Streamlit reruns."""
     uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+
+    # Append TLS params to URI if not already present
+    separator = "&" if "?" in uri else "?"
+    if "tls=" not in uri.lower():
+        uri += f"{separator}tls=true&tlsAllowInvalidCertificates=true"
+
     return MongoClient(
         uri,
-        tlsCAFile=certifi.where(),
         serverSelectionTimeoutMS=30000,
         connectTimeoutMS=30000,
         socketTimeoutMS=30000,
@@ -30,21 +34,20 @@ class FewShotPosts:
         """Load posts from MongoDB based on the dataset name"""
         collection = self.db[self.dataset_name]
         posts = list(collection.find({}, {'_id': 0}))
-        
+
         if posts:
             self.df = pd.json_normalize(posts)
             self.df['length'] = self.df['line_count'].apply(self.categorize_length)
             all_tags = self.df['tags'].apply(lambda x: x).sum()
             self.unique_tags = list(set(all_tags))
         else:
-            # Fallback to empty DataFrame if no data
             self.df = pd.DataFrame()
             self.unique_tags = []
 
     def get_filtered_posts(self, length, language, tag):
         if self.df.empty:
             return []
-            
+
         df_filtered = self.df[
             (self.df['tags'].apply(lambda tags: tag in tags)) &
             (self.df['language'] == language) &

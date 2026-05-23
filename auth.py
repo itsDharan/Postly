@@ -6,7 +6,11 @@ import streamlit as st
 from passlib.hash import pbkdf2_sha256
 from pymongo import MongoClient
 from pymongo.errors import PyMongoError
-from passlib.exc import InvalidHashError
+
+try:
+    from passlib.exc import InvalidHashError
+except ImportError:
+    InvalidHashError = ValueError
 
 # MongoDB connection — cached so it's not recreated on every Streamlit rerun
 @st.cache_resource
@@ -14,14 +18,13 @@ def get_mongo_client():
     """Create and cache a single MongoDB client for the app lifetime."""
     uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
 
-    # Build a TLS-safe SSL context compatible with MongoDB Atlas M0
-    ssl_context = ssl.create_default_context(cafile=certifi.where())
-    ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
+    # Append TLS params to URI if not already present
+    separator = "&" if "?" in uri else "?"
+    if "tls=" not in uri.lower():
+        uri += f"{separator}tls=true&tlsAllowInvalidCertificates=true"
 
     return MongoClient(
         uri,
-        tls=True,
-        tlsCAFile=certifi.where(),
         serverSelectionTimeoutMS=30000,
         connectTimeoutMS=30000,
         socketTimeoutMS=30000,
@@ -58,21 +61,18 @@ def init_db():
                 {"name": "Influencer 3", "username": "ammaradil", "dataset": "ammar_data"}
             ])
     except PyMongoError:
-        pass  # Will be caught by check_db_connection
+        pass
 
 def register_user(username, password, influencer_username):
     """Register a new user with MongoDB. Returns (success, error_message)."""
     try:
-        # Check if username exists
         if users_collection.find_one({"username": username}):
             return False, "Username already exists"
-        
-        # Get influencer details
+
         influencer = influencers_collection.find_one({"username": influencer_username})
         if not influencer:
             return False, f"Influencer '{influencer_username}' not found in database"
-        
-        # Create new user
+
         user_data = {
             "username": username,
             "password": pbkdf2_sha256.hash(password),
@@ -80,7 +80,7 @@ def register_user(username, password, influencer_username):
             "influencer_name": influencer["name"],
             "dataset": influencer["dataset"]
         }
-        
+
         users_collection.insert_one(user_data)
         return True, "Success"
     except PyMongoError as e:
@@ -92,10 +92,10 @@ def authenticate_user(username, password):
         user = users_collection.find_one({"username": username})
         if not user:
             return False, "User not found"
-        
+
         if not user.get("password"):
             return False, "No password stored for user"
-            
+
         try:
             if pbkdf2_sha256.verify(password, user["password"]):
                 return True, "Success"
