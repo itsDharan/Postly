@@ -31,6 +31,16 @@ INFLUENCERS = {
     "Influencer 3": "ammaradil"
 }
 
+def check_db_connection():
+    """Check if MongoDB is connected. Returns (ok, message)."""
+    try:
+        client.admin.command('ping')
+        inf_count = influencers_collection.count_documents({})
+        usr_count = users_collection.count_documents({})
+        return True, f"Connected. Influencers: {inf_count}, Users: {usr_count}"
+    except Exception as e:
+        return False, f"DB Error: {type(e).__name__}: {e}"
+
 def init_db():
     """Initialize the database with influencers if not exists"""
     try:
@@ -41,19 +51,19 @@ def init_db():
                 {"name": "Influencer 3", "username": "ammaradil", "dataset": "ammar_data"}
             ])
     except PyMongoError as e:
-        print(f"Warning: Could not initialize DB: {e}")
+        pass  # Will be caught by check_db_connection
 
 def register_user(username, password, influencer_username):
-    """Register a new user with MongoDB"""
+    """Register a new user with MongoDB. Returns (success, error_message)."""
     try:
         # Check if username exists
         if users_collection.find_one({"username": username}):
-            return False
+            return False, "Username already exists"
         
         # Get influencer details
         influencer = influencers_collection.find_one({"username": influencer_username})
         if not influencer:
-            return False
+            return False, f"Influencer '{influencer_username}' not found in database"
         
         # Create new user
         user_data = {
@@ -65,37 +75,35 @@ def register_user(username, password, influencer_username):
         }
         
         users_collection.insert_one(user_data)
-        return True
+        return True, "Success"
     except PyMongoError as e:
-        print(f"Registration error: {e}")
-        return False
+        return False, f"Database error: {type(e).__name__}: {e}"
 
 def authenticate_user(username, password):
-    """Authenticate user with MongoDB"""
+    """Authenticate user. Returns (success, error_message)."""
     try:
         user = users_collection.find_one({"username": username})
         if not user:
-            return False
+            return False, "User not found"
         
-        # Handle cases where password might not be properly hashed
         if not user.get("password"):
-            return False
+            return False, "No password stored for user"
             
         try:
-            return pbkdf2_sha256.verify(password, user["password"])
-        except (ValueError, InvalidHashError):
-            # Handle cases where the stored hash is invalid
-            return False
+            if pbkdf2_sha256.verify(password, user["password"]):
+                return True, "Success"
+            else:
+                return False, "Wrong password"
+        except (ValueError, InvalidHashError) as e:
+            return False, f"Password hash error: {e}"
     except PyMongoError as e:
-        print(f"Auth error: {e}")
-        return False
+        return False, f"Database error: {type(e).__name__}: {e}"
 
 def get_user_data(username):
-    """Get user data including influencer dataset"""
+    """Get user data including influencer dataset."""
     try:
         return users_collection.find_one({"username": username}, {"_id": 0})
     except PyMongoError as e:
-        print(f"Get user data error: {e}")
         return None
 
 # Initialize the database on import

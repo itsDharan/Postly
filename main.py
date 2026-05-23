@@ -1,7 +1,7 @@
 import streamlit as st
 from few_shot import FewShotPosts
 from post_generator import generate_post
-from auth import INFLUENCERS, authenticate_user, register_user, get_user_data
+from auth import INFLUENCERS, authenticate_user, register_user, get_user_data, check_db_connection
 
 
 st.set_page_config(page_title="Postly", page_icon="✦", layout="wide",
@@ -369,6 +369,13 @@ def login_page():
     col_l, col_c, col_r = st.columns([1, 2, 1])
     with col_c:
 
+        # DB status check
+        with st.spinner("Connecting to database..."):
+            db_ok, db_msg = check_db_connection()
+        if not db_ok:
+            st.error(f"Database connection issue: {db_msg}")
+            st.info("The app may not work properly until the database is accessible.")
+
         tab1, tab2 = st.tabs(["Sign In", "Create Account"])
 
         with tab1:
@@ -383,8 +390,8 @@ def login_page():
                     st.error("Please enter both username and password")
                 else:
                     with st.spinner("Signing in..."):
-                        auth_result = authenticate_user(username, password)
-                    if auth_result:
+                        success, msg = authenticate_user(username, password)
+                    if success:
                         with st.spinner("Loading your profile..."):
                             user_data = get_user_data(username)
                         if user_data:
@@ -395,7 +402,7 @@ def login_page():
                         else:
                             st.error("Could not load user profile. Please try again.")
                     else:
-                        st.error("Invalid username or password. Please try again.")
+                        st.error(f"Sign in failed: {msg}")
 
         with tab2:
             new_username = st.text_input("Username", key="reg_username",
@@ -413,12 +420,12 @@ def login_page():
                     st.error("Password must be at least 4 characters")
                 else:
                     with st.spinner("Creating your account..."):
-                        result = register_user(new_username, new_password,
-                                               INFLUENCERS[influencer])
-                    if result:
+                        success, msg = register_user(new_username, new_password,
+                                                     INFLUENCERS[influencer])
+                    if success:
                         st.success("Account created! Switch to 'Sign In' tab to continue.")
                     else:
-                        st.error("Registration failed — username may already exist. Try a different username.")
+                        st.error(f"Registration failed: {msg}")
 
 
 
