@@ -1,6 +1,5 @@
 # auth.py
 import os
-import ssl
 import certifi
 import streamlit as st
 from passlib.hash import pbkdf2_sha256
@@ -12,19 +11,13 @@ try:
 except ImportError:
     InvalidHashError = ValueError
 
-# MongoDB connection — cached so it's not recreated on every Streamlit rerun
 @st.cache_resource
 def get_mongo_client():
     """Create and cache a single MongoDB client for the app lifetime."""
     uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
-
-    # Append TLS params to URI if not already present
-    separator = "&" if "?" in uri else "?"
-    if "tls=" not in uri.lower():
-        uri += f"{separator}tls=true&tlsAllowInvalidCertificates=true"
-
     return MongoClient(
         uri,
+        tlsCAFile=certifi.where(),
         serverSelectionTimeoutMS=30000,
         connectTimeoutMS=30000,
         socketTimeoutMS=30000,

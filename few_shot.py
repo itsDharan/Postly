@@ -1,5 +1,6 @@
 # few_shot.py
 import os
+import certifi
 import pandas as pd
 import streamlit as st
 from pymongo import MongoClient
@@ -8,14 +9,9 @@ from pymongo import MongoClient
 def _get_mongo_client():
     """Shared MongoDB client — cached across Streamlit reruns."""
     uri = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
-
-    # Append TLS params to URI if not already present
-    separator = "&" if "?" in uri else "?"
-    if "tls=" not in uri.lower():
-        uri += f"{separator}tls=true&tlsAllowInvalidCertificates=true"
-
     return MongoClient(
         uri,
+        tlsCAFile=certifi.where(),
         serverSelectionTimeoutMS=30000,
         connectTimeoutMS=30000,
         socketTimeoutMS=30000,
